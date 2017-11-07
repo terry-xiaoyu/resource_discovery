@@ -1,7 +1,7 @@
 %%%-------------------------------------------------------------------
 %%% File    : resource_discovery.erl
 %%% Author  : Martin J. Logan <martinjlogan@erlware.org>
-%%% @doc 
+%%% @doc
 %%% Resource Discovery has 3 major types. They are listed here.
 %%% @type resource_tuple() = {resource_type(), resource()}. The type
 %%%       of a resource followed by the actual resource. Local
@@ -10,7 +10,7 @@
 %%% @type resource_type() = atom(). The name of a resource, how it is identified. For example
 %%%       a type of service that you have on the network may be identified by it's node name
 %%%       in which case you might have a resource type of 'my_service' of which there may be
-%%%       many node names representing resources such as {my_service, myservicenode@myhost}. 
+%%%       many node names representing resources such as {my_service, myservicenode@myhost}.
 %%% @type resource() =  term(). Either a concrete resource or a reference to one like a pid().
 %%% @end
 %%%-------------------------------------------------------------------
@@ -38,9 +38,9 @@
         ]).
 % Get
 -export([
-         get_resource/1, 
-         get_resources/1, 
-         get_num_resource/1, 
+         get_resource/1,
+         get_resources/1,
+         get_num_resource/1,
          get_resource_types/0,
          get_num_resource_types/0
         ]).
@@ -86,7 +86,7 @@ start() ->
 %% @end
 %%--------------------------------------------------------------------
 start(_Type, _StartArgs) ->
-    % Create the storage for the local parameters; i.e. LocalTypes 
+    % Create the storage for the local parameters; i.e. LocalTypes
     % and TargetTypes.
     random:seed(now()),
     rd_store:new(),
@@ -148,7 +148,7 @@ get_responses(Pids, Timeout) ->
     after
 	Timeout -> {error, timeout}
     end.
-		  
+
 %%------------------------------------------------------------------------------
 %% @doc Adds to the list of target types. Target types are the types
 %%      of resources that this instance of resource_discovery will cache following
@@ -157,23 +157,23 @@ get_responses(Pids, Timeout) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec add_target_resource_types([resource_type()]) -> ok.
-add_target_resource_types([H|_] = TargetTypes) when is_atom(H) -> 
+add_target_resource_types([H|_] = TargetTypes) when is_atom(H) ->
     rd_core:store_target_resource_types(TargetTypes).
-	    
+
 -spec add_target_resource_type(resource_type()) -> ok.
-add_target_resource_type(TargetType) when is_atom(TargetType) -> 
+add_target_resource_type(TargetType) when is_atom(TargetType) ->
     add_target_resource_types([TargetType]).
 
 %%------------------------------------------------------------------------------
-%% @doc Adds to the list of local resource tuples. 
+%% @doc Adds to the list of local resource tuples.
 %% @end
 %%------------------------------------------------------------------------------
 -spec add_local_resource_tuples([resource_tuple()]) -> ok.
-add_local_resource_tuples([{T,_}|_] = LocalResourceTuples) when is_atom(T) -> 
+add_local_resource_tuples([{T,_}|_] = LocalResourceTuples) when is_atom(T) ->
     rd_core:store_local_resource_tuples(LocalResourceTuples).
-	    
+
 -spec add_local_resource_tuple(resource_tuple()) -> ok.
-add_local_resource_tuple({T,_} = LocalResourceTuple) when is_atom(T) -> 
+add_local_resource_tuple({T,_} = LocalResourceTuple) when is_atom(T) ->
     add_local_resource_tuples([LocalResourceTuple]).
 
 %%------------------------------------------------------------------------------
@@ -196,7 +196,7 @@ add_callback_module(Module) when is_atom(Module) ->
 %%------------------------------------------------------------------------------
 -spec get_resource(resource_type()) -> {ok, resource()} | {error, not_found}.
 get_resource(Type) when is_atom(Type) ->
-    rd_core:round_robin_get(Type). 
+    rd_core:round_robin_get(Type).
 
 %%------------------------------------------------------------------------------
 %% @doc Returns ALL cached resources for a particular type.
@@ -204,7 +204,7 @@ get_resource(Type) when is_atom(Type) ->
 %%------------------------------------------------------------------------------
 -spec get_resources(resource_type()) -> [resource()].
 get_resources(Type) ->
-    rd_core:all_of_type_get(Type). 
+    rd_core:all_of_type_get(Type).
 
 %%------------------------------------------------------------------------------
 %% @doc Gets a list of the types that have resources that have been cached.
@@ -224,7 +224,7 @@ delete_resource_tuple(ResourceTuple = {_,_}) ->
     rd_core:delete_resource_tuple(ResourceTuple).
 
 %%------------------------------------------------------------------------------
-%% @doc Remove a target type and all associated resources. 
+%% @doc Remove a target type and all associated resources.
 %% @end
 %%------------------------------------------------------------------------------
 -spec delete_target_resource_type(resource_type()) -> true.
@@ -274,7 +274,7 @@ get_num_resource_types() ->
 -spec get_num_resource(resource_type()) -> integer().
 get_num_resource(Type) ->
     rd_core:get_num_resource(Type).
-				    
+
 %%------------------------------------------------------------------------------
 %% @doc Contacts resource discoveries initial contact node.
 %%
@@ -294,14 +294,18 @@ get_num_resource(Type) ->
 %% @end
 %%------------------------------------------------------------------------------
 contact_nodes(Timeout) ->
-   {ok, ContactNodes} =
-	case lists:keysearch(contact_node, 1, init:get_arguments()) of
+  {ok, ContactNodes} =
+		case lists:keysearch(contact_node, 1, init:get_arguments()) of
 	    {value, {contact_node, [I_ContactNode]}} ->
-		application:set_env(resource_discovery, contact_nodes, [I_ContactNode]),
-		{ok, [list_to_atom(I_ContactNode)]};
-	    _ -> rd_util:get_env(contact_nodes, [node()])
-	end,
-    ping_contact_nodes(ContactNodes, Timeout).
+				error_logger:info_msg("got \"-contact_node=~p\" from erl command line arguments", [I_ContactNode]),
+				application:set_env(resource_discovery, contact_nodes, [I_ContactNode]),
+				{ok, [list_to_atom(I_ContactNode)]};
+		  _ ->
+				DefaultContactNodes = [node()],
+				rd_util:get_env(contact_nodes, DefaultContactNodes)
+		end,
+  error_logger:info_msg("Ping ContactNodes: ~p", [ContactNodes]),
+  ping_contact_nodes(ContactNodes, Timeout).
 
 %% @spec contact_nodes() -> pong | pang | no_contact_node
 %% @equiv contact_nodes(10000)
@@ -316,7 +320,7 @@ ping_contact_nodes(Nodes, Timeout) ->
 			     case rd_util:sync_ping(Node, Timeout) of
 				 pong -> true;
 				 pang ->
-				     error_logger:info_msg("ping contact node at ~p failed", [Node]), 
+				     error_logger:error_msg("ping contact node at ~p failed", [Node]),
 				     false
 			     end
 		     end,
@@ -325,10 +329,10 @@ ping_contact_nodes(Nodes, Timeout) ->
 	false -> {error, bad_contact_node};
 	true -> ok
     end.
-	       
+
 %%------------------------------------------------------------------------------
-%% @doc Execute an rpc on a cached resource.  If the result of the rpc is {badrpc, reason} the 
-%%      resource is deleted and the next resource is tried, else the result is 
+%% @doc Execute an rpc on a cached resource.  If the result of the rpc is {badrpc, reason} the
+%%      resource is deleted and the next resource is tried, else the result is
 %%      returned to the user.
 %% <pre>
 %% Varibles:
@@ -339,27 +343,27 @@ ping_contact_nodes(Nodes, Timeout) ->
 -spec rpc_call(resource_type(), atom(), atom(), [term()], timeout()) -> term() | {error, not_found}.
 rpc_call(Type, Module, Function, Args, Timeout) ->
     case get_resource(Type) of
-	{ok, Resource} -> 
+	  {ok, Resource} ->
 	    error_logger:info_msg("got a resource ~p", [Resource]),
 	    case rpc:call(Resource, Module, Function, Args, Timeout) of
 		{badrpc, Reason} ->
-		    error_logger:info_msg("got a badrpc ~p", [Reason]),
+		    error_logger:error_msg("got a badrpc ~p", [Reason]),
 		    delete_resource_tuple({Type, Resource}),
 		    rpc_call(Type, Module, Function, Args, Timeout);
 		Reply ->
-		    error_logger:info_msg("result of rpc was ~p", [Reply]),
+		    error_logger:warning_msg("result of rpc was ~p", [Reply]),
 		    Reply
-	    end;
-        {error, not_found} -> {error, not_found}
-    end.
+	  end;
+    {error, not_found} -> {error, not_found}
+end.
 
 -spec rpc_call(resource_type(), atom(), atom(), [term()]) -> term() | {error, no_resources}.
 rpc_call(Type, Module, Function, Args) ->
     rpc_call(Type, Module, Function, Args, 60000).
 
 %%------------------------------------------------------------------------------
-%% @doc Execute an rpc on a cached resource.  Any bad nodes are deleted. 
-%%      resource is deleted and the next resource is tried, else the result is 
+%% @doc Execute an rpc on a cached resource.  Any bad nodes are deleted.
+%%      resource is deleted and the next resource is tried, else the result is
 %%      returned to the user.
 %% @end
 %%------------------------------------------------------------------------------
@@ -367,7 +371,7 @@ rpc_call(Type, Module, Function, Args) ->
 rpc_multicall(Type, Module, Function, Args, Timeout) ->
     case get_resources(Type) of
         [] -> {error, no_resources};
-	Resources -> 
+	Resources ->
 	    error_logger:info_msg("got resources ~p", [Resources]),
 	    {Resl, BadNodes} = rpc:multicall(Resources, Module, Function, Args, Timeout),
 	    [delete_resource_tuple({Type, BadNode}) || BadNode <- BadNodes],
